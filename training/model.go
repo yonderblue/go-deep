@@ -1,6 +1,9 @@
 package training
 
-import "math/rand"
+import (
+	"math/rand"
+	"time"
+)
 
 // Example is an input-target pair
 type Example struct {
@@ -13,6 +16,11 @@ type Examples []Example
 
 // Shuffle shuffles slice in-place
 func (e Examples) Shuffle() {
+	r := rand.New(rand.NewSource(time.Now().UnixNano()))
+	e.ShuffleRand(r)
+}
+
+func (e Examples) ShuffleRand(rand *rand.Rand) {
 	for i := range e {
 		j := rand.Intn(i + 1)
 		e[i], e[j] = e[j], e[i]

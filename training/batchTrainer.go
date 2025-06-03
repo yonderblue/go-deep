@@ -1,6 +1,7 @@
 package training
 
 import (
+	"math/rand"
 	"sync"
 	"time"
 
@@ -15,6 +16,7 @@ type BatchTrainer struct {
 	parallelism int
 	solver      Solver
 	printer     *StatsPrinter
+	rand        *rand.Rand
 }
 
 type internalb struct {
@@ -57,6 +59,7 @@ func NewBatchTrainer(solver Solver, verbosity, batchSize, parallelism int) *Batc
 		batchSize:   iparam(batchSize, 1),
 		parallelism: iparam(parallelism, 1),
 		printer:     NewStatsPrinter(),
+		rand:        rand.New(rand.NewSource(time.Now().UnixNano())),
 	}
 }
 
@@ -89,7 +92,7 @@ func (t *BatchTrainer) Train(n *deep.Neural, examples, validation Examples, iter
 
 	ts := time.Now()
 	for it := 1; it <= iterations; it++ {
-		train.Shuffle()
+		train.ShuffleRand(t.rand)
 		batches := train.SplitSize(t.batchSize)
 
 		for _, b := range batches {
@@ -124,6 +127,10 @@ func (t *BatchTrainer) Train(n *deep.Neural, examples, validation Examples, iter
 			t.printer.PrintProgress(n, validation, time.Since(ts), it)
 		}
 	}
+}
+
+func (t *BatchTrainer) SetRand(r *rand.Rand) {
+	t.rand = r
 }
 
 func (t *BatchTrainer) calculateDeltas(n *deep.Neural, ideal []float64, wid int) {

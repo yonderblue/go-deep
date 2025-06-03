@@ -1,6 +1,7 @@
 package training
 
 import (
+	"math/rand"
 	"time"
 
 	deep "github.com/patrikeh/go-deep"
@@ -17,6 +18,7 @@ type OnlineTrainer struct {
 	solver    Solver
 	printer   *StatsPrinter
 	verbosity int
+	rand      *rand.Rand
 }
 
 // NewTrainer creates a new trainer
@@ -25,6 +27,7 @@ func NewTrainer(solver Solver, verbosity int) *OnlineTrainer {
 		solver:    solver,
 		printer:   NewStatsPrinter(),
 		verbosity: verbosity,
+		rand:      rand.New(rand.NewSource(time.Now().UnixNano())),
 	}
 }
 
@@ -51,7 +54,7 @@ func (t *OnlineTrainer) Train(n *deep.Neural, examples, validation Examples, ite
 
 	ts := time.Now()
 	for i := 1; i <= iterations; i++ {
-		examples.Shuffle()
+		examples.ShuffleRand(t.rand)
 		for j := 0; j < len(examples); j++ {
 			t.learn(n, examples[j], i)
 		}
@@ -59,6 +62,10 @@ func (t *OnlineTrainer) Train(n *deep.Neural, examples, validation Examples, ite
 			t.printer.PrintProgress(n, validation, time.Since(ts), i)
 		}
 	}
+}
+
+func (t *OnlineTrainer) SetRand(r *rand.Rand) {
+	t.rand = r
 }
 
 func (t *OnlineTrainer) learn(n *deep.Neural, e Example, it int) {

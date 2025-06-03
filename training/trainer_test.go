@@ -11,7 +11,7 @@ import (
 )
 
 func Test_BoundedRegression(t *testing.T) {
-	rand.Seed(0)
+	r := rand.New(rand.NewSource(0))
 
 	funcs := []func(float64) float64{
 		math.Sin,
@@ -30,11 +30,12 @@ func Test_BoundedRegression(t *testing.T) {
 			Layout:     []int{4, 4, 1},
 			Activation: deep.ActivationTanh,
 			Mode:       deep.ModeRegression,
-			Weight:     deep.NewUniform(0.5, 0),
+			Weight:     deep.NewUniformRand(r, 0.5, 0),
 			Bias:       true,
 		})
 
 		trainer := NewTrainer(NewSGD(0.25, 0.5, 0, false), 0)
+		trainer.SetRand(r)
 		trainer.Train(n, data, nil, 5000)
 
 		tests := []float64{0.0, 0.1, 0.25, 0.5, 0.75, 0.9}
@@ -45,7 +46,8 @@ func Test_BoundedRegression(t *testing.T) {
 }
 
 func Test_RegressionLinearOuts(t *testing.T) {
-	rand.Seed(0)
+	r := rand.New(rand.NewSource(0))
+
 	squares := Examples{}
 	for i := 0.0; i < 100.0; i++ {
 		squares = append(squares, Example{Input: []float64{i}, Response: []float64{math.Sqrt(i)}})
@@ -56,11 +58,12 @@ func Test_RegressionLinearOuts(t *testing.T) {
 		Layout:     []int{3, 3, 1},
 		Activation: deep.ActivationReLU,
 		Mode:       deep.ModeRegression,
-		Weight:     deep.NewNormal(0.5, 0.5),
+		Weight:     deep.NewNormalRand(r, 0.5, 0.5),
 		Bias:       true,
 	})
 
 	trainer := NewBatchTrainer(NewAdam(0.01, 0, 0, 0), 0, 25, 2)
+	trainer.SetRand(r)
 	trainer.Train(n, squares, nil, 25000)
 
 	for i := 0; i < 100; i++ {
@@ -70,7 +73,7 @@ func Test_RegressionLinearOuts(t *testing.T) {
 }
 
 func Test_Training(t *testing.T) {
-	rand.Seed(0)
+	r := rand.New(rand.NewSource(0))
 
 	data := Examples{
 		Example{[]float64{0}, []float64{0}},
@@ -84,11 +87,12 @@ func Test_Training(t *testing.T) {
 		Inputs:     1,
 		Layout:     []int{5, 1},
 		Activation: deep.ActivationSigmoid,
-		Weight:     deep.NewUniform(0.5, 0),
+		Weight:     deep.NewUniformRand(r, 0.5, 0),
 		Bias:       true,
 	})
 
 	trainer := NewTrainer(NewSGD(0.5, 0.1, 0, false), 0)
+	trainer.SetRand(r)
 	trainer.Train(n, data, nil, 1000)
 
 	v := n.Predict([]float64{0})
@@ -111,17 +115,17 @@ var data = []Example{
 }
 
 func Test_Prediction(t *testing.T) {
-	rand.Seed(0)
+	r := rand.New(rand.NewSource(0))
 
 	n := deep.NewNeural(&deep.Config{
 		Inputs:     2,
 		Layout:     []int{2, 2, 1},
 		Activation: deep.ActivationSigmoid,
-		Weight:     deep.NewUniform(0.5, 0),
+		Weight:     deep.NewUniformRand(r, 0.5, 0),
 		Bias:       true,
 	})
 	trainer := NewTrainer(NewSGD(0.5, 0.1, 0, false), 0)
-
+	trainer.SetRand(r)
 	trainer.Train(n, data, nil, 5000)
 
 	for _, d := range data {
@@ -130,16 +134,19 @@ func Test_Prediction(t *testing.T) {
 }
 
 func Test_CrossVal(t *testing.T) {
+	r := rand.New(rand.NewSource(0))
+
 	n := deep.NewNeural(&deep.Config{
 		Inputs:     2,
 		Layout:     []int{1, 1},
 		Activation: deep.ActivationTanh,
 		Loss:       deep.LossMeanSquared,
-		Weight:     deep.NewUniform(0.5, 0),
+		Weight:     deep.NewUniformRand(r, 0.5, 0),
 		Bias:       true,
 	})
 
 	trainer := NewTrainer(NewSGD(0.5, 0.1, 0, false), 0)
+	trainer.SetRand(r)
 	trainer.Train(n, data, data, 1000)
 
 	for _, d := range data {
@@ -149,6 +156,8 @@ func Test_CrossVal(t *testing.T) {
 }
 
 func Test_MultiClass(t *testing.T) {
+	r := rand.New(rand.NewSource(10))
+
 	var data = []Example{
 		{[]float64{2.7810836, 2.550537003}, []float64{1, 0}},
 		{[]float64{1.465489372, 2.362125076}, []float64{1, 0}},
@@ -168,11 +177,12 @@ func Test_MultiClass(t *testing.T) {
 		Activation: deep.ActivationReLU,
 		Mode:       deep.ModeMultiClass,
 		Loss:       deep.LossMeanSquared,
-		Weight:     deep.NewUniform(0.1, 0),
+		Weight:     deep.NewUniformRand(r, 0.1, 0),
 		Bias:       true,
 	})
 
 	trainer := NewTrainer(NewSGD(0.01, 0.1, 0, false), 0)
+	trainer.SetRand(r)
 	trainer.Train(n, data, data, 1000)
 
 	for _, d := range data {
@@ -189,13 +199,14 @@ func Test_MultiClass(t *testing.T) {
 }
 
 func Test_or(t *testing.T) {
-	rand.Seed(0)
+	r := rand.New(rand.NewSource(0))
+
 	n := deep.NewNeural(&deep.Config{
 		Inputs:     2,
 		Layout:     []int{1, 1},
 		Activation: deep.ActivationTanh,
 		Mode:       deep.ModeBinary,
-		Weight:     deep.NewUniform(0.5, 0),
+		Weight:     deep.NewUniformRand(r, 0.5, 0),
 		Bias:       true,
 	})
 	permutations := Examples{
@@ -206,7 +217,7 @@ func Test_or(t *testing.T) {
 	}
 
 	trainer := NewTrainer(NewSGD(0.5, 0, 0, false), 10)
-
+	trainer.SetRand(r)
 	trainer.Train(n, permutations, permutations, 25)
 
 	for _, perm := range permutations {
@@ -215,13 +226,14 @@ func Test_or(t *testing.T) {
 }
 
 func Test_xor(t *testing.T) {
-	rand.Seed(0)
+	r := rand.New(rand.NewSource(0))
+
 	n := deep.NewNeural(&deep.Config{
 		Inputs:     2,
 		Layout:     []int{3, 1}, // Sufficient for modeling (AND+OR) - with 5-6 neuron always converges
 		Activation: deep.ActivationSigmoid,
 		Mode:       deep.ModeBinary,
-		Weight:     deep.NewUniform(.25, 0),
+		Weight:     deep.NewUniformRand(r, .25, 0),
 		Bias:       true,
 	})
 	permutations := Examples{
@@ -232,10 +244,11 @@ func Test_xor(t *testing.T) {
 	}
 
 	trainer := NewTrainer(NewSGD(1.0, 0.1, 1e-6, false), 50)
+	trainer.SetRand(r)
 	trainer.Train(n, permutations, permutations, 500)
 
 	for _, perm := range permutations {
-		assert.InEpsilon(t, n.Predict(perm.Input)[0]+1, perm.Response[0]+1, 0.2)
+		assert.InEpsilon(t, n.Predict(perm.Input)[0]+1, perm.Response[0]+1, 0.05)
 	}
 }
 
