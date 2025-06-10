@@ -65,6 +65,12 @@ func NewBatchTrainer(solver Solver, verbosity, batchSize, parallelism int) *Batc
 
 // Train trains n
 func (t *BatchTrainer) Train(n *deep.Neural, examples, validation Examples, iterations int) {
+	t.TrainStop(n, examples, validation, func(it int, _, _ float64) bool {
+		return it >= iterations
+	})
+}
+
+func (t *BatchTrainer) TrainStop(n *deep.Neural, examples, validation Examples, stop StopFunc) (loss float64) {
 	t.internalb = newBatchTraining(n.Layers, t.parallelism)
 
 	train := make(Examples, len(examples))
@@ -91,7 +97,7 @@ func (t *BatchTrainer) Train(n *deep.Neural, examples, validation Examples, iter
 	t.solver.Init(n.NumWeights())
 
 	ts := time.Now()
-	for it := 1; it <= iterations; it++ {
+	for it := 1; ; it++ {
 		train.ShuffleRand(t.rand)
 		t.solver.Step()
 		batches := train.SplitSize(t.batchSize)
@@ -127,7 +133,16 @@ func (t *BatchTrainer) Train(n *deep.Neural, examples, validation Examples, iter
 		if t.verbosity > 0 && it%t.verbosity == 0 && len(validation) > 0 {
 			t.printer.PrintProgress(n, validation, time.Since(ts), it)
 		}
+		trainLoss := crossValidate(n, examples)
+		var validateLoss float64
+		if len(validation) > 0 {
+			validateLoss = crossValidate(n, validation)
+		}
+		if stop(it, trainLoss, validateLoss) {
+			break
+		}
 	}
+	return loss
 }
 
 func (t *BatchTrainer) SetRand(r *rand.Rand) {

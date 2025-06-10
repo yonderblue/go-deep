@@ -7,9 +7,12 @@ import (
 	deep "github.com/patrikeh/go-deep"
 )
 
+type StopFunc func(iteration int, trainLoss, validateLoss float64) bool
+
 // Trainer is a neural network trainer
 type Trainer interface {
 	Train(n *deep.Neural, examples, validation Examples, iterations int)
+	TrainStop(n *deep.Neural, examples, validation Examples, _ StopFunc)
 }
 
 // OnlineTrainer is a basic, online network trainer
@@ -47,13 +50,19 @@ func newTraining(layers []*deep.Layer) *internal {
 
 // Train trains n
 func (t *OnlineTrainer) Train(n *deep.Neural, examples, validation Examples, iterations int) {
+	t.TrainStop(n, examples, validation, func(it int, _, _ float64) bool {
+		return it >= iterations
+	})
+}
+
+func (t *OnlineTrainer) TrainStop(n *deep.Neural, examples, validation Examples, stop StopFunc) {
 	t.internal = newTraining(n.Layers)
 
 	t.printer.Init(n)
 	t.solver.Init(n.NumWeights())
 
 	ts := time.Now()
-	for i := 1; i <= iterations; i++ {
+	for i := 1; ; i++ {
 		examples.ShuffleRand(t.rand)
 		t.solver.Step()
 		for j := 0; j < len(examples); j++ {
@@ -61,6 +70,14 @@ func (t *OnlineTrainer) Train(n *deep.Neural, examples, validation Examples, ite
 		}
 		if t.verbosity > 0 && i%t.verbosity == 0 && len(validation) > 0 {
 			t.printer.PrintProgress(n, validation, time.Since(ts), i)
+		}
+		trainLoss := crossValidate(n, examples)
+		var validateLoss float64
+		if len(validation) > 0 {
+			validateLoss = crossValidate(n, validation)
+		}
+		if stop(i, trainLoss, validateLoss) {
+			break
 		}
 	}
 }
