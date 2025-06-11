@@ -1,9 +1,9 @@
 package training
 
 import (
-	"fmt"
 	"math"
 	"math/rand"
+	"runtime"
 	"testing"
 
 	deep "github.com/patrikeh/go-deep"
@@ -252,6 +252,45 @@ func Test_xor(t *testing.T) {
 	}
 }
 
-func printResult(ideal, actual []float64) {
-	fmt.Printf("want: %+v have: %+v\n", ideal, actual)
+func Benchmark_xor(b *testing.B) {
+	exs := Examples{
+		{[]float64{0, 0}, []float64{0}},
+		{[]float64{1, 0}, []float64{1}},
+		{[]float64{0, 1}, []float64{1}},
+		{[]float64{1, 1}, []float64{0}},
+	}
+	const minExamples = 4000
+	var dupExs Examples
+	for len(dupExs) < minExamples {
+		dupExs = append(dupExs, exs...)
+	}
+
+	run := func(b *testing.B, batch bool) {
+		r := rand.New(rand.NewSource(0))
+
+		n := deep.NewNeural(&deep.Config{
+			Inputs:     2,
+			Layout:     []int{32, 32, 1},
+			Activation: deep.ActivationSigmoid,
+			Mode:       deep.ModeBinary,
+			Weight:     deep.NewUniformRand(r, .25, 0),
+			Bias:       true,
+		})
+
+		for i := 0; i < b.N; i++ {
+			const iterations = 20
+			solver := NewAdam(0.001, 0.9, 0.999, 1e-8)
+			if batch {
+				trainer := NewBatchTrainer(solver, 0, len(dupExs)/2, runtime.NumCPU())
+				trainer.SetRand(r)
+				trainer.Train(n, dupExs, dupExs, iterations)
+			} else {
+				trainer := NewTrainer(solver, 0)
+				trainer.SetRand(r)
+				trainer.Train(n, dupExs, dupExs, iterations)
+			}
+		}
+	}
+	b.Run("batch", func(b *testing.B) { run(b, true) })
+	b.Run("non batch", func(b *testing.B) { run(b, false) })
 }

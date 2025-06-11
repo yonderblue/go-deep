@@ -55,8 +55,9 @@ func (t *OnlineTrainer) Train(n *deep.Neural, examples, validation Examples, ite
 	ts := time.Now()
 	for i := 1; i <= iterations; i++ {
 		examples.ShuffleRand(t.rand)
+		t.solver.Step()
 		for j := 0; j < len(examples); j++ {
-			t.learn(n, examples[j], i)
+			t.learn(n, examples[j])
 		}
 		if t.verbosity > 0 && i%t.verbosity == 0 && len(validation) > 0 {
 			t.printer.PrintProgress(n, validation, time.Since(ts), i)
@@ -68,10 +69,10 @@ func (t *OnlineTrainer) SetRand(r *rand.Rand) {
 	t.rand = r
 }
 
-func (t *OnlineTrainer) learn(n *deep.Neural, e Example, it int) {
+func (t *OnlineTrainer) learn(n *deep.Neural, e Example) {
 	n.Forward(e.Input)
 	t.calculateDeltas(n, e.Response)
-	t.update(n, it)
+	t.update(n)
 }
 
 func (t *OnlineTrainer) calculateDeltas(n *deep.Neural, ideal []float64) {
@@ -93,14 +94,13 @@ func (t *OnlineTrainer) calculateDeltas(n *deep.Neural, ideal []float64) {
 	}
 }
 
-func (t *OnlineTrainer) update(n *deep.Neural, it int) {
+func (t *OnlineTrainer) update(n *deep.Neural) {
 	var idx int
 	for i, l := range n.Layers {
 		for j := range l.Neurons {
 			for k := range l.Neurons[j].In {
 				update := t.solver.Update(l.Neurons[j].In[k].Weight,
 					t.deltas[i][j]*l.Neurons[j].In[k].In,
-					it,
 					idx)
 				l.Neurons[j].In[k].Weight += update
 				idx++
