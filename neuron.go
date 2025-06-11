@@ -2,7 +2,7 @@ package deep
 
 // Neuron is a neural network node
 type Neuron struct {
-	A     ActivationType `json:"-"`
+	A     Differentiable `json:"-"`
 	In    []*Synapse
 	Out   []*Synapse
 	Value float64 `json:"-"`
@@ -11,7 +11,7 @@ type Neuron struct {
 // NewNeuron returns a neuron with the given activation
 func NewNeuron(activation ActivationType) *Neuron {
 	return &Neuron{
-		A: activation,
+		A: GetActivation(activation),
 	}
 }
 
@@ -30,12 +30,12 @@ func (n *Neuron) fire() {
 
 // Activate applies the neurons activation
 func (n *Neuron) Activate(x float64) float64 {
-	return GetActivation(n.A).F(x)
+	return n.A.F(x)
 }
 
 // DActivate applies the derivative of the neurons activation
 func (n *Neuron) DActivate(x float64) float64 {
-	return GetActivation(n.A).Df(x)
+	return n.A.Df(x)
 }
 
 // Synapse is an edge between neurons

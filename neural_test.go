@@ -49,7 +49,7 @@ func Test_Forward(t *testing.T) {
 		},
 	}
 	for _, n := range n.Layers[1].Neurons {
-		n.A = ActivationSigmoid
+		n.A = GetActivation(ActivationSigmoid)
 	}
 	for i, l := range n.Layers {
 		for j, n := range l.Neurons {
