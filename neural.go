@@ -30,6 +30,8 @@ type Config struct {
 	Loss LossType
 	// Apply bias nodes
 	Bias bool
+
+	OutputActivation ActivationType
 }
 
 // NewNeural returns a new neural network
@@ -77,7 +79,11 @@ func initializeLayers(c *Config) []*Layer {
 	for i := range layers {
 		act := c.Activation
 		if i == (len(layers)-1) && c.Mode != ModeDefault {
-			act = OutputActivation(c.Mode)
+			if c.OutputActivation == ActivationNone {
+				act = OutputActivation(c.Mode)
+			} else {
+				act = c.OutputActivation
+			}
 		}
 		layers[i] = NewLayer(c.Layout[i], act)
 	}
